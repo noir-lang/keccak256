@@ -1,5 +1,5 @@
-# Keccak256z Hashing Library
+# Keccak256 Hashing Library
 
-This package contains the Keccak256z hashing interface, formerly in the Noir standard library.
+This package contains the Keccak256 hashing interface, formerly in the Noir standard library.
 
 > WIP
