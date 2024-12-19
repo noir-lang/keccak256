@@ -56,3 +56,17 @@ fn var_size_hash() {
     ];
     assert_eq(keccak256(input, 13), result);
 }
+
+#[test]
+fn hash_longer_than_136_bytes() {
+    let input = "123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789"
+        .as_bytes();
+    assert(input.len() > 136);
+
+    let result = [
+        0x1d, 0xca, 0xeb, 0xdf, 0xd9, 0xd6, 0x24, 0x67, 0x1c, 0x18, 0x16, 0xda, 0xd, 0x8a, 0xeb,
+        0xa8, 0x75, 0x71, 0x2c, 0xc, 0x89, 0xe0, 0x25, 0x2, 0xe8, 0xb6, 0x5e, 0x16, 0x5, 0x55, 0xe4,
+        0x40,
+    ];
+    assert_eq(keccak256(input, input.len()), result);
+}
