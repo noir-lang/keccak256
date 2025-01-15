@@ -9,7 +9,7 @@ global LIMBS_PER_BLOCK: u32 = BLOCK_SIZE_IN_BYTES / WORD_SIZE;
 global NUM_KECCAK_LANES: u32 = 25;
 
 #[no_predicates]
-pub(crate) fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
+pub fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
     assert(N >= message_size);
 
     // Copy input to block bytes. For that we'll need at least input bytes (N)
