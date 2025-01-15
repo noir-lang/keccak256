@@ -1,3 +1,5 @@
+mod tests;
+
 use std::runtime::is_unconstrained;
 use std::hash::keccak::keccakf1600;
 

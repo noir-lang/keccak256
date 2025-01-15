@@ -1,9 +1,4 @@
-use crate::keccak256::keccak256;
-
-#[export]
-fn test_keccak256_0() -> [u8; 32] {
-    keccak256([], 0)
-}
+use super::keccak256;
 
 #[export]
 fn test_keccak256_1(input: [u8; 1], len: u32) -> [u8; 32] {

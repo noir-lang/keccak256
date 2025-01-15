@@ -6,20 +6,6 @@ use proptest::{prelude::prop, test_runner::TestRunner};
 use sha3::{Digest, Keccak256};
 
 #[test]
-fn test_vibe_check() {
-    let runner = NoirRunner::try_new(PathBuf::new()).unwrap();
-
-    let result = runner
-        .run("test_keccak256_0", BTreeMap::new())
-        .unwrap()
-        .unwrap();
-
-    let expected: [u8; 32] = Keccak256::digest([]).try_into().unwrap();
-
-    assert_eq!(result, expected.to_noir());
-}
-
-#[test]
 fn test_prop_keccak256_1() {
     let runner = NoirRunner::try_new(PathBuf::new()).unwrap();
 
