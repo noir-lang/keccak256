@@ -47,6 +47,21 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
 
+      - name: Run Noir tests
+        run: nargo test
+
+  rust-equivalence-tests:
+    name: Test for equivalence against Rust impl
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Install Nargo
+        uses: noir-lang/noirup@v0.1.3
+        with:
+          toolchain: ${{ env.MINIMUM_NOIR_VERSION }}
+
       - name: Install Cargo
         uses: dtolnay/rust-toolchain@1.74.1
         with:
@@ -58,11 +73,8 @@ jobs:
           key: x86_64-unknown-linux-gnu
           cache-on-failure: true
 
-      - name: Run Noir tests
-        run: nargo test
-
-      - name: Run Cargo tests
-        run: cargo test
+      - name: Export and Test Noir Functions
+        run: ./scripts/fuzz-test.sh
 
   format:
     runs-on: ubuntu-latest
@@ -87,6 +99,7 @@ jobs:
     if: ${{ always() }}
     needs: 
       - test
+      - rust-equivalence-tests
       - format
 
     steps:
