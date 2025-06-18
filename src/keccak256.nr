@@ -1,7 +1,7 @@
 mod tests;
 
-use std::runtime::is_unconstrained;
 use std::hash::keccak::keccakf1600;
+use std::runtime::is_unconstrained;
 
 global BLOCK_SIZE_IN_BYTES: u32 = 136; //(1600 - BITS * 2) / WORD_SIZE;
 global WORD_SIZE: u32 = 8; // Limbs are made up of u64s so 8 bytes each.
@@ -54,38 +54,40 @@ pub fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
 
     //2. sponge_absorb
     let mut state: [u64; NUM_KECCAK_LANES] = [0; NUM_KECCAK_LANES];
-    // When in an unconstrained runtime we can take advantage of runtime loop bounds,
-    // thus allowing us to simplify the loop body.
-    if is_unconstrained() {
-        for i in 0..real_max_blocks {
-            if (i == 0) {
-                for j in 0..LIMBS_PER_BLOCK {
-                    state[j] = sliced_buffer[j];
-                }
-            } else {
-                for j in 0..LIMBS_PER_BLOCK {
-                    state[j] = state[j] ^ sliced_buffer[i * LIMBS_PER_BLOCK + j];
-                }
+    // `real_max_blocks` is guaranteed to at least be `1`
+    // We peel out the first block as to avoid a conditional inside of the loop.
+    // Otherwise, a dynamic predicate can cause a blowup in a constrained runtime.
+    for j in 0..LIMBS_PER_BLOCK {
+        state[j] = sliced_buffer[j];
+    }
+    state = keccakf1600(state);
+
+    let state = if is_unconstrained() {
+        // When in an unconstrained runtime we can take advantage of runtime loop bounds,
+        // thus allowing us to simplify the loop body.
+        for i in 1..real_max_blocks {
+            for j in 0..LIMBS_PER_BLOCK {
+                state[j] = state[j] ^ sliced_buffer[i * LIMBS_PER_BLOCK + j];
             }
             state = keccakf1600(state);
         }
+
+        state
     } else {
-        // `real_max_blocks` is guaranteed to at least be `1`
-        // We peel out the first block as to avoid a conditional inside of the loop.
-        // Otherwise, a dynamic predicate can cause a blowup in a constrained runtime.
-        for j in 0..LIMBS_PER_BLOCK {
-            state[j] = sliced_buffer[j];
-        }
-        state = keccakf1600(state);
+        // We store the intermediate states in an array to avoid having a dynamic predicate
+        // inside the loop, which can cause a blowup in a constrained runtime.
+        let mut intermediate_states = [state; (N + BLOCK_SIZE_IN_BYTES) / BLOCK_SIZE_IN_BYTES + 1];
         for i in 1..max_blocks {
-            if i < real_max_blocks {
-                for j in 0..LIMBS_PER_BLOCK {
-                    state[j] = state[j] ^ sliced_buffer[i * LIMBS_PER_BLOCK + j];
-                }
-                state = keccakf1600(state);
+            let mut previous_state = intermediate_states[i - 1];
+            for j in 0..LIMBS_PER_BLOCK {
+                previous_state[j] = previous_state[j] ^ sliced_buffer[i * LIMBS_PER_BLOCK + j];
             }
+            intermediate_states[i] = keccakf1600(previous_state);
         }
-    }
+
+        // We can then take the state as of `real_max_blocks`, ignoring later permutations.
+        intermediate_states[real_max_blocks - 1]
+    };
 
     //3. sponge_squeeze
     let mut result = [0; 32];
