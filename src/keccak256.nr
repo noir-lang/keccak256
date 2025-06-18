@@ -1,6 +1,6 @@
 mod tests;
 
-use std::hash::keccak256::keccakf1600;
+use std::hash::keccak::keccakf1600;
 use std::runtime::is_unconstrained;
 
 global BLOCK_SIZE_IN_BYTES: u32 = 136; //(1600 - BITS * 2) / WORD_SIZE;
