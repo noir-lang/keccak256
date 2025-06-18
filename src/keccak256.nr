@@ -76,7 +76,7 @@ pub fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
     } else {
         // We store the intermediate states in an array to avoid having a dynamic predicate
         // inside the loop, which can cause a blowup in a constrained runtime.
-        let mut intermediate_states = [state; (N + BLOCK_SIZE_IN_BYTES) / BLOCK_SIZE_IN_BYTES];
+        let mut intermediate_states = [state; (N + BLOCK_SIZE_IN_BYTES) / BLOCK_SIZE_IN_BYTES + 1];
         for i in 1..max_blocks {
             let mut previous_state = intermediate_states[i - 1];
             for j in 0..LIMBS_PER_BLOCK {
@@ -86,7 +86,7 @@ pub fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
         }
 
         // We can then take the state as of `real_max_blocks`, ignoring later permutations.
-        intermediate_states[real_max_blocks]
+        intermediate_states[real_max_blocks - 1]
     };
 
     //3. sponge_squeeze
