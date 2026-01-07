@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1767827817750,
+  "lastUpdate": 1767827818808,
   "repoUrl": "https://github.com/noir-lang/keccak256",
   "entries": {
     "ACIR Opcodes": [
@@ -467,6 +467,50 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/noir-lang/keccak256/commit/7fa0d752ce7c56d2449a499c270583d83fd7e9a6"
         },
         "date": 1767825332038,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "test_keccak256_1",
+            "value": 458,
+            "unit": "opcodes"
+          },
+          {
+            "name": "test_keccak256_100",
+            "value": 564,
+            "unit": "opcodes"
+          },
+          {
+            "name": "test_keccak256_135",
+            "value": 599,
+            "unit": "opcodes"
+          },
+          {
+            "name": "test_keccak256_256",
+            "value": 721,
+            "unit": "opcodes"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "26174818+jialinli98@users.noreply.github.com",
+            "name": "Jialin Li",
+            "username": "jialinli98"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e4f858b4b6a4dbdf5c69805ad94ccae927bb0501",
+          "message": "chore: update readme (#13)\n\n* update readme",
+          "timestamp": "2026-01-07T15:16:35-08:00",
+          "tree_id": "b681d76f6723096c093a5393017d69274f5fee06",
+          "url": "https://github.com/noir-lang/keccak256/commit/e4f858b4b6a4dbdf5c69805ad94ccae927bb0501"
+        },
+        "date": 1767827818794,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
