@@ -36,7 +36,13 @@ pub fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
     let real_blocks_bytes = real_max_blocks * BLOCK_SIZE_IN_BYTES;
 
     block_bytes[message_size] = 1;
-    block_bytes[real_blocks_bytes - 1] = 0x80;
+    //block_bytes[real_blocks_bytes - 1] = 0x80;
+    if message_size == real_blocks_bytes - 1 {
+        // combine both padding bits into a single byte
+        block_bytes[message_size] = 0x81;
+    } else {
+        block_bytes[real_blocks_bytes - 1] = 0x80;
+    }
 
     // populate a vector of 64-bit limbs from our byte array
     let mut sliced_buffer =
