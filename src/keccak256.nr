@@ -29,19 +29,12 @@ pub fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
         }
     }
 
-    //1. format_input_lanes
+    //1. format_input_lanes and apply padding
     let max_blocks = (N + BLOCK_SIZE_IN_BYTES) / BLOCK_SIZE_IN_BYTES;
-    //maximum number of bytes to hash
     let real_max_blocks = (message_size + BLOCK_SIZE_IN_BYTES) / BLOCK_SIZE_IN_BYTES;
-    let real_blocks_bytes = real_max_blocks * BLOCK_SIZE_IN_BYTES;
 
-    block_bytes[message_size] = 1;
-    if message_size == real_blocks_bytes - 1 {
-        // combine both padding bits into a single byte
-        block_bytes[message_size] = 0x81;
-    } else {
-        block_bytes[real_blocks_bytes - 1] = 0x80;
-    }
+    // Apply Keccak padding (0x01 after message, 0x80 at block end)
+    apply_keccak_padding(&mut block_bytes, message_size);
 
     // populate a vector of 64-bit limbs from our byte array
     let mut sliced_buffer =
@@ -106,4 +99,24 @@ pub fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
         }
     }
     result
+}
+
+// Apply Keccak padding to the block_bytes array
+// Append 0x01 after message, then 0x80 at end of block
+// If both padding bytes collide at the same byte, combine them as 0x81
+pub(crate) fn apply_keccak_padding<let BLOCK_BYTES: u32>(
+    block_bytes: &mut [u8; BLOCK_BYTES],
+    message_size: u32,
+) {
+    let real_max_blocks = (message_size + BLOCK_SIZE_IN_BYTES) / BLOCK_SIZE_IN_BYTES;
+    let real_blocks_bytes = real_max_blocks * BLOCK_SIZE_IN_BYTES;
+
+    block_bytes[message_size] = 0x01;
+
+    if message_size == real_blocks_bytes - 1 {
+        // Combine both padding bits: 0x01 | 0x80 = 0x81
+        block_bytes[message_size] = 0x81;
+    } else {
+        block_bytes[real_blocks_bytes - 1] = 0x80;
+    }
 }
