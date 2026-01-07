@@ -1,5 +1,6 @@
 mod tests;
 mod oracle_tests;
+mod benchmarks;
 
 use std::hash::keccakf1600;
 use std::runtime::is_unconstrained;
