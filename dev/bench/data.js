@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1767803194465,
+  "lastUpdate": 1767803455584,
   "repoUrl": "https://github.com/noir-lang/keccak256",
   "entries": {
     "ACIR Opcodes": [
@@ -23,6 +23,50 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/noir-lang/keccak256/commit/b7c6caab11e1d9da6a4ff4e61098bcba399a45cc"
         },
         "date": 1767803192776,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "test_keccak256_1.json/main",
+            "value": 1305,
+            "unit": "acir_opcodes"
+          },
+          {
+            "name": "test_keccak256_100.json/main",
+            "value": 1899,
+            "unit": "acir_opcodes"
+          },
+          {
+            "name": "test_keccak256_135.json/main",
+            "value": 2109,
+            "unit": "acir_opcodes"
+          },
+          {
+            "name": "test_keccak256_256.json/main",
+            "value": 3992,
+            "unit": "acir_opcodes"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "15848336+TomAFrench@users.noreply.github.com",
+            "name": "Tom French",
+            "username": "TomAFrench"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "19810a7b7145093f4b7a89da29f6bc057cf778c2",
+          "message": "chore: replace release-please token (#10)",
+          "timestamp": "2026-01-07T16:30:38Z",
+          "tree_id": "8ca3b3f8744de6ea08a63e1784c37aa580efd42a",
+          "url": "https://github.com/noir-lang/keccak256/commit/19810a7b7145093f4b7a89da29f6bc057cf778c2"
+        },
+        "date": 1767803455271,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
