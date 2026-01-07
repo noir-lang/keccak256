@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1767827818808,
+  "lastUpdate": 1767829078498,
   "repoUrl": "https://github.com/noir-lang/keccak256",
   "entries": {
     "ACIR Opcodes": [
@@ -155,6 +155,50 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/noir-lang/keccak256/commit/e4f858b4b6a4dbdf5c69805ad94ccae927bb0501"
         },
         "date": 1767827816149,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "test_keccak256_1.json/main",
+            "value": 1305,
+            "unit": "acir_opcodes"
+          },
+          {
+            "name": "test_keccak256_100.json/main",
+            "value": 1899,
+            "unit": "acir_opcodes"
+          },
+          {
+            "name": "test_keccak256_135.json/main",
+            "value": 2109,
+            "unit": "acir_opcodes"
+          },
+          {
+            "name": "test_keccak256_256.json/main",
+            "value": 3992,
+            "unit": "acir_opcodes"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "163862677+noirwhal@users.noreply.github.com",
+            "name": "noirwhal",
+            "username": "noirwhal"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "47d8cf8df8d68b6bce5ee18cdd5f06a4b6556c6d",
+          "message": "chore: Release 0.1.2 (#11)\n\n* chore: Release 0.1.1\n\n* chore: Release 0.1.2\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>\nCo-authored-by: jialinli <me@jialinli.net>",
+          "timestamp": "2026-01-07T15:37:33-08:00",
+          "tree_id": "6e24e43ef2c8ce535580e102b457def7b99851a6",
+          "url": "https://github.com/noir-lang/keccak256/commit/47d8cf8df8d68b6bce5ee18cdd5f06a4b6556c6d"
+        },
+        "date": 1767829078224,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
