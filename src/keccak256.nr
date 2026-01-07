@@ -34,7 +34,7 @@ pub fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
     let real_max_blocks = (message_size + BLOCK_SIZE_IN_BYTES) / BLOCK_SIZE_IN_BYTES;
 
     // Apply Keccak padding (0x01 after message, 0x80 at block end)
-    apply_keccak_padding(&mut block_bytes, message_size);
+    apply_keccak_padding(&mut block_bytes, message_size, real_max_blocks);
 
     // populate a vector of 64-bit limbs from our byte array
     let mut sliced_buffer =
@@ -107,8 +107,8 @@ pub fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
 pub(crate) fn apply_keccak_padding<let BLOCK_BYTES: u32>(
     block_bytes: &mut [u8; BLOCK_BYTES],
     message_size: u32,
+    real_max_blocks: u32,
 ) {
-    let real_max_blocks = (message_size + BLOCK_SIZE_IN_BYTES) / BLOCK_SIZE_IN_BYTES;
     let real_blocks_bytes = real_max_blocks * BLOCK_SIZE_IN_BYTES;
 
     block_bytes[message_size] = 0x01;

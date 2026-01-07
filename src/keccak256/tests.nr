@@ -5,7 +5,8 @@ fn test_padding_no_collision() {
     // Message size 134: padding bytes don't collide
     // Expected: block_bytes[134] = 0x01, block_bytes[135] = 0x80
     let mut block_bytes = [0; 136];
-    apply_keccak_padding(&mut block_bytes, 134);
+    let real_max_blocks = (134 + 136) / 136;
+    apply_keccak_padding(&mut block_bytes, 134, real_max_blocks);
 
     assert_eq(block_bytes[134], 0x01, "First padding byte should be 0x01");
     assert_eq(block_bytes[135], 0x80, "Second padding byte should be 0x80");
@@ -16,7 +17,8 @@ fn test_padding_collision_135() {
     // Message size 135: padding bytes collide at position 135
     // Expected: block_bytes[135] = 0x81
     let mut block_bytes = [0; 272];
-    apply_keccak_padding(&mut block_bytes, 135);
+    let real_max_blocks = (135 + 136) / 136;
+    apply_keccak_padding(&mut block_bytes, 135, real_max_blocks);
 
     assert_eq(block_bytes[135], 0x81, "Combined padding byte should be 0x81");
     // Ensure no stray 0x80 elsewhere
@@ -30,7 +32,8 @@ fn test_padding_zero_length() {
     // Message size 0: padding starts immediately
     // Expected: block_bytes[0] = 0x01, block_bytes[135] = 0x80
     let mut block_bytes = [0; 136];
-    apply_keccak_padding(&mut block_bytes, 0);
+    let real_max_blocks = (0 + 136) / 136;
+    apply_keccak_padding(&mut block_bytes, 0, real_max_blocks);
 
     assert_eq(block_bytes[0], 0x01, "First padding byte at position 0");
     assert_eq(block_bytes[135], 0x80, "Second padding byte at end of block");
@@ -41,7 +44,8 @@ fn test_padding_full_block() {
     // Message size 136: exactly fills one block, needs another for padding
     // Expected: block_bytes[136] = 0x01, block_bytes[271] = 0x80
     let mut block_bytes = [0; 272];
-    apply_keccak_padding(&mut block_bytes, 136);
+    let real_max_blocks = (136 + 136) / 136;
+    apply_keccak_padding(&mut block_bytes, 136, real_max_blocks);
 
     assert_eq(block_bytes[136], 0x01, "First padding byte after full block");
     assert_eq(block_bytes[271], 0x80, "Second padding byte at end of next block");
