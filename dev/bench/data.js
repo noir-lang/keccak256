@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1767825330202,
+  "lastUpdate": 1767825331032,
   "repoUrl": "https://github.com/noir-lang/keccak256",
   "entries": {
     "ACIR Opcodes": [
@@ -201,6 +201,50 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/noir-lang/keccak256/commit/19810a7b7145093f4b7a89da29f6bc057cf778c2"
         },
         "date": 1767803456265,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "test_keccak256_1.json/main",
+            "value": 40626,
+            "unit": "circuit_size"
+          },
+          {
+            "name": "test_keccak256_100.json/main",
+            "value": 40626,
+            "unit": "circuit_size"
+          },
+          {
+            "name": "test_keccak256_135.json/main",
+            "value": 40626,
+            "unit": "circuit_size"
+          },
+          {
+            "name": "test_keccak256_256.json/main",
+            "value": 51234,
+            "unit": "circuit_size"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "26174818+jialinli98@users.noreply.github.com",
+            "name": "Jialin Li",
+            "username": "jialinli98"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7fa0d752ce7c56d2449a499c270583d83fd7e9a6",
+          "message": "chore: add padding tests (#12)\n\n* padding tests\n\n* duplication",
+          "timestamp": "2026-01-07T14:35:09-08:00",
+          "tree_id": "a64ac6153af445579e1dce131e21788568d46b78",
+          "url": "https://github.com/noir-lang/keccak256/commit/7fa0d752ce7c56d2449a499c270583d83fd7e9a6"
+        },
+        "date": 1767825331019,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
