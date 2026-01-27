@@ -59,8 +59,6 @@ pub fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
         sliced += v * (block_bytes[limb_start + 6] as Field);
         v *= 256;
         sliced += v * (block_bytes[limb_start + 7] as Field);
-        v *= 256;
-
         sliced.assert_max_bit_size::<64>();
         sliced_buffer[i] = sliced as u64;
     }
