@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1769534181769,
+  "lastUpdate": 1769534182646,
   "repoUrl": "https://github.com/noir-lang/keccak256",
   "entries": {
     "ACIR Opcodes": [
@@ -751,6 +751,50 @@ window.BENCHMARK_DATA = {
           {
             "name": "test_keccak256_256",
             "value": 721,
+            "unit": "opcodes"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "15848336+TomAFrench@users.noreply.github.com",
+            "name": "Tom French",
+            "username": "TomAFrench"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1c023d9e6a44b48d866058121d0d3581b795918a",
+          "message": "feat: unroll loops to improve brillig runtime performance (#14)",
+          "timestamp": "2026-01-27T17:16:03Z",
+          "tree_id": "412051bf3bbaba94405eaf6e80b0e6a0f712de63",
+          "url": "https://github.com/noir-lang/keccak256/commit/1c023d9e6a44b48d866058121d0d3581b795918a"
+        },
+        "date": 1769534182631,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "test_keccak256_1",
+            "value": 723,
+            "unit": "opcodes"
+          },
+          {
+            "name": "test_keccak256_100",
+            "value": 829,
+            "unit": "opcodes"
+          },
+          {
+            "name": "test_keccak256_135",
+            "value": 864,
+            "unit": "opcodes"
+          },
+          {
+            "name": "test_keccak256_256",
+            "value": 986,
             "unit": "opcodes"
           }
         ]
