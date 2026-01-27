@@ -118,7 +118,7 @@ pub fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
 
     //3. sponge_squeeze
     let mut result = [0; 32];
-    let lane = state[1] as Field;
+    let lane = state[0] as Field;
     let lane_le: [u8; 8] = lane.to_le_bytes();
     result[0] = lane_le[0];
     result[1] = lane_le[1];
