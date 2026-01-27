@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1769534306965,
+  "lastUpdate": 1769534307712,
   "repoUrl": "https://github.com/noir-lang/keccak256",
   "entries": {
     "ACIR Opcodes": [
@@ -553,6 +553,50 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/noir-lang/keccak256/commit/1c023d9e6a44b48d866058121d0d3581b795918a"
         },
         "date": 1769534181753,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "test_keccak256_1.json/main",
+            "value": 40626,
+            "unit": "circuit_size"
+          },
+          {
+            "name": "test_keccak256_100.json/main",
+            "value": 40626,
+            "unit": "circuit_size"
+          },
+          {
+            "name": "test_keccak256_135.json/main",
+            "value": 40626,
+            "unit": "circuit_size"
+          },
+          {
+            "name": "test_keccak256_256.json/main",
+            "value": 49045,
+            "unit": "circuit_size"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "163862677+noirwhal@users.noreply.github.com",
+            "name": "noirwhal",
+            "username": "noirwhal"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f64ab3af714aa1a1e2699243037e0f11fe5bf706",
+          "message": "chore: Release 0.1.3 (#15)",
+          "timestamp": "2026-01-27T17:18:08Z",
+          "tree_id": "217bbfa250c5d508e9dd7e5ba0dfdeeb9fb264d4",
+          "url": "https://github.com/noir-lang/keccak256/commit/f64ab3af714aa1a1e2699243037e0f11fe5bf706"
+        },
+        "date": 1769534307697,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
