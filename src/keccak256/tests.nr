@@ -3,52 +3,48 @@ use super::{apply_keccak_padding, keccak256};
 #[test]
 fn test_padding_no_collision() {
     // Message size 134: padding bytes don't collide
-    // Expected: block_bytes[134] = 0x01, block_bytes[135] = 0x80
-    let mut block_bytes = [0; 136];
-    let real_max_blocks = (134 + 136) / 136;
-    apply_keccak_padding(&mut block_bytes, 134, real_max_blocks);
+    // Limb 16, byte offsets 6 and 7
+    // block_array[16] = 0x01 << 48 (start) + 0x80 << 56 (end)
+    let mut block_array = [0; 17]; // 1 block = 17 limbs
+    let real_max_blocks = 1;
+    apply_keccak_padding(&mut block_array, 134, real_max_blocks);
 
-    assert_eq(block_bytes[134], 0x01, "First padding byte should be 0x01");
-    assert_eq(block_bytes[135], 0x80, "Second padding byte should be 0x80");
+    assert_eq(block_array[16], 0x8001000000000000);
 }
 
 #[test]
 fn test_padding_collision_135() {
-    // Message size 135: padding bytes collide at position 135
-    // Expected: block_bytes[135] = 0x81
-    let mut block_bytes = [0; 272];
-    let real_max_blocks = (135 + 136) / 136;
-    apply_keccak_padding(&mut block_bytes, 135, real_max_blocks);
+    // Message size 135: padding bytes collide at byte 135 (offset 7 in limb 16)
+    // block_array[16] = 0x01 << 56 + 0x80 << 56 = 0x81 << 56
+    let mut block_array = [0; 17]; // 1 block = 17 limbs
+    let real_max_blocks = 1;
+    apply_keccak_padding(&mut block_array, 135, real_max_blocks);
 
-    assert_eq(block_bytes[135], 0x81, "Combined padding byte should be 0x81");
-    // Ensure no stray 0x80 elsewhere
-    for i in 136..272 {
-        assert_eq(block_bytes[i], 0x00, "No padding beyond position 135");
-    }
+    assert_eq(block_array[16], 0x8100000000000000);
 }
 
 #[test]
 fn test_padding_zero_length() {
     // Message size 0: padding starts immediately
-    // Expected: block_bytes[0] = 0x01, block_bytes[135] = 0x80
-    let mut block_bytes = [0; 136];
-    let real_max_blocks = (0 + 136) / 136;
-    apply_keccak_padding(&mut block_bytes, 0, real_max_blocks);
+    // block_array[0] = 0x01, block_array[16] = 0x80 << 56
+    let mut block_array = [0; 17]; // 1 block = 17 limbs
+    let real_max_blocks = 1;
+    apply_keccak_padding(&mut block_array, 0, real_max_blocks);
 
-    assert_eq(block_bytes[0], 0x01, "First padding byte at position 0");
-    assert_eq(block_bytes[135], 0x80, "Second padding byte at end of block");
+    assert_eq(block_array[0], 0x01);
+    assert_eq(block_array[16], 0x8000000000000000);
 }
 
 #[test]
 fn test_padding_full_block() {
     // Message size 136: exactly fills one block, needs another for padding
-    // Expected: block_bytes[136] = 0x01, block_bytes[271] = 0x80
-    let mut block_bytes = [0; 272];
-    let real_max_blocks = (136 + 136) / 136;
-    apply_keccak_padding(&mut block_bytes, 136, real_max_blocks);
+    // block_array[17] = 0x01, block_array[33] = 0x80 << 56
+    let mut block_array = [0; 34]; // 2 blocks = 34 limbs
+    let real_max_blocks = 2;
+    apply_keccak_padding(&mut block_array, 136, real_max_blocks);
 
-    assert_eq(block_bytes[136], 0x01, "First padding byte after full block");
-    assert_eq(block_bytes[271], 0x80, "Second padding byte at end of next block");
+    assert_eq(block_array[17], 0x01);
+    assert_eq(block_array[33], 0x8000000000000000);
 }
 
 #[test]

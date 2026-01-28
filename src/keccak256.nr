@@ -33,9 +33,6 @@ pub fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
     let max_blocks = (N + BLOCK_SIZE_IN_BYTES) / BLOCK_SIZE_IN_BYTES;
     let real_max_blocks = (message_size + BLOCK_SIZE_IN_BYTES) / BLOCK_SIZE_IN_BYTES;
 
-    // Apply Keccak padding (0x01 after message, 0x80 at block end)
-    apply_keccak_padding(&mut block_bytes, message_size, real_max_blocks);
-
     // populate a vector of 64-bit limbs from our byte array
     let mut sliced_buffer =
         [0; (((N / BLOCK_SIZE_IN_BYTES) + 1) * BLOCK_SIZE_IN_BYTES) / WORD_SIZE];
@@ -58,6 +55,9 @@ pub fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
         sliced.assert_max_bit_size::<64>();
         sliced_buffer[i] = sliced as u64;
     }
+
+    // Apply Keccak padding (0x01 after message, 0x80 at block end)
+    apply_keccak_padding( &mut sliced_buffer, message_size, real_max_blocks);
 
     //2. sponge_absorb
     let mut state: [u64; NUM_KECCAK_LANES] = [0; NUM_KECCAK_LANES];
@@ -126,24 +126,22 @@ pub fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
     result
 }
 
-// Apply Keccak padding to the block_bytes array
+// Apply Keccak padding to the u64 block array
 // Append 0x01 after message, then 0x80 at end of block
 // If both padding bytes collide at the same byte, combine them as 0x81
 #[inline_always]
-pub(crate) fn apply_keccak_padding<let BLOCK_BYTES: u32>(
-    block_bytes: &mut [u8; BLOCK_BYTES],
+pub(crate) fn apply_keccak_padding<let N: u32>(
+     block_array: &mut [u64; N],
     message_size: u32,
     real_max_blocks: u32,
-) {
-    let real_blocks_bytes = real_max_blocks * BLOCK_SIZE_IN_BYTES;
-
-    if message_size == real_blocks_bytes - 1 {
-        // Combine both padding bits: 0x01 | 0x80 = 0x81
-        block_bytes[message_size] = 0x81;
-    } else {
-        block_bytes[message_size] = 0x01;
-        block_bytes[real_blocks_bytes - 1] = 0x80;
-    }
+)  {
+    // Calculate limb index and byte offset within the limb (little-endian)
+    let start_limb_index = message_size / WORD_SIZE;
+    let start_byte_offset = message_size % WORD_SIZE;
+    
+    block_array[start_limb_index] += 0x01 << (8 * (start_byte_offset as u64));        
+    // The end padding byte (0x80) always goes at byte 7 of the last limb
+    block_array[real_max_blocks * LIMBS_PER_BLOCK - 1] += 0x80 << 56;
 }
 
 comptime fn unroll_loop(start: u32, end: u32, body: fn(u32) -> Quoted) -> Quoted {
