@@ -147,7 +147,7 @@ pub(crate) fn apply_keccak_padding<let BLOCK_BYTES: u32>(
 }
 
 comptime fn unroll_loop(start: u32, end: u32, body: fn(u32) -> Quoted) -> Quoted {
-    let mut iterations: [Quoted] = @[];
+    let mut iterations: [Quoted] = &[];
     for i in start..end {
         iterations = iterations.push_back(body(i));
     }
