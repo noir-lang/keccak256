@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1769617491782,
+  "lastUpdate": 1769617492722,
   "repoUrl": "https://github.com/noir-lang/keccak256",
   "entries": {
     "ACIR Opcodes": [
@@ -1279,6 +1279,50 @@ window.BENCHMARK_DATA = {
           {
             "name": "test_keccak256_256",
             "value": 985,
+            "unit": "opcodes"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "15848336+TomAFrench@users.noreply.github.com",
+            "name": "Tom French",
+            "username": "TomAFrench"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "df1073c79a8372dcbd6ba475cfc708025809b844",
+          "message": "feat: optimize converting from bytes to `u64`s in brillig runtime (#17)",
+          "timestamp": "2026-01-28T16:24:32Z",
+          "tree_id": "cc55be8c5b0f8781e24cae4e8d941bc1127251d6",
+          "url": "https://github.com/noir-lang/keccak256/commit/df1073c79a8372dcbd6ba475cfc708025809b844"
+        },
+        "date": 1769617492707,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "test_keccak256_1",
+            "value": 596,
+            "unit": "opcodes"
+          },
+          {
+            "name": "test_keccak256_100",
+            "value": 698,
+            "unit": "opcodes"
+          },
+          {
+            "name": "test_keccak256_135",
+            "value": 733,
+            "unit": "opcodes"
+          },
+          {
+            "name": "test_keccak256_256",
+            "value": 854,
             "unit": "opcodes"
           }
         ]
