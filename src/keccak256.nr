@@ -4,7 +4,6 @@ mod benchmarks;
 
 use std::hash::keccakf1600;
 use std::runtime::is_unconstrained;
-use std::static_assert;
 
 global BLOCK_SIZE_IN_BYTES: u32 = 136; //(1600 - BITS * 2) / WORD_SIZE;
 global WORD_SIZE: u32 = 8; // Limbs are made up of u64s so 8 bytes each.
@@ -15,25 +14,10 @@ global NUM_KECCAK_LANES: u32 = 25;
 pub fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
     assert(N >= message_size);
 
-    // Copy input to block bytes. For that we'll need at least input bytes (N)
-    // but we want it to be padded to a multiple of BLOCK_SIZE_IN_BYTES.
-    let mut block_bytes = [0; ((N / BLOCK_SIZE_IN_BYTES) + 1) * BLOCK_SIZE_IN_BYTES];
-    if is_unconstrained() {
-        for i in 0..message_size {
-            block_bytes[i] = input[i];
-        }
-    } else {
-        for i in 0..N {
-            if i < message_size {
-                block_bytes[i] = input[i];
-            }
-        }
-    }
-
     //1. format_input_lanes and apply padding
     let real_max_blocks = (message_size + BLOCK_SIZE_IN_BYTES) / BLOCK_SIZE_IN_BYTES;
 
-    let mut block_array = convert_to_u64_array(block_bytes);
+    let mut block_array = convert_to_u64_array(input, message_size);
 
     // Apply Keccak padding (0x01 after message, 0x80 at block end)
     apply_keccak_padding(&mut block_array, message_size, real_max_blocks);
@@ -44,32 +28,54 @@ pub fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
     read_hash_from_state(state)
 }
 
-fn convert_to_u64_array<let N: u32>(input: [u8; N]) -> [u64; N / WORD_SIZE] {
-    static_assert(
-        N % WORD_SIZE == 0,
-        "Byte array is expected to cleanly divide into chunks",
-    );
-    // populate a vector of 64-bit limbs from our byte array
-    let mut sliced_buffer = [0; N / WORD_SIZE];
-    for i in 0..sliced_buffer.len() {
-        let limb_start = WORD_SIZE * i;
+fn convert_to_u64_array<let N: u32>(
+    input: [u8; N],
+    message_size: u32,
+) -> [u64; ((N / BLOCK_SIZE_IN_BYTES) + 1) * LIMBS_PER_BLOCK] {
+    // Output is padded to a multiple of BLOCK_SIZE_IN_BYTES
+    let mut sliced_buffer = [0; ((N / BLOCK_SIZE_IN_BYTES) + 1) * LIMBS_PER_BLOCK];
 
-        let mut sliced = 0;
-        let mut v = 1;
-        unroll_loop!(
-            0u32,
-            WORD_SIZE,
-            |i: u32| {
-                quote {
-                    sliced += v * (input[limb_start + $i] as Field);
-                    v *= 256;
-                }
-            },
-        );
+    if is_unconstrained() {
+        // Process each byte of the message and accumulate into the appropriate limb
+        for i in 0..message_size {
+            let limb_index = i / WORD_SIZE;
+            let byte_offset = i % WORD_SIZE;
+            sliced_buffer[limb_index] += (input[i] as u64) << (8 * (byte_offset as u64));
+        }
+    } else {
+        // In constrained code, it's simpler to copy to a larger intermediate array of a size such that we don't need to apply
+        // any guards when we're constructing the `u64` limbs.
 
-        sliced.assert_max_bit_size::<64>();
-        sliced_buffer[i] = sliced as u64;
+        // We need at least input bytes (N) but we want it to be padded to a multiple of BLOCK_SIZE_IN_BYTES.
+        let mut block_bytes = [0; ((N / BLOCK_SIZE_IN_BYTES) + 1) * BLOCK_SIZE_IN_BYTES];
+
+        for i in 0..N {
+            if i < message_size {
+                block_bytes[i] = input[i];
+            }
+        }
+
+        for i in 0..((N / BLOCK_SIZE_IN_BYTES) + 1) * LIMBS_PER_BLOCK {
+            let limb_start = WORD_SIZE * i;
+
+            let mut sliced = 0;
+            let mut v = 1;
+            unroll_loop!(
+                0u32,
+                WORD_SIZE,
+                |j: u32| {
+                    quote {
+                        sliced += v * (block_bytes[limb_start + $j] as Field);
+                        v *= 256;
+                    }
+                },
+            );
+
+            sliced.assert_max_bit_size::<64>();
+            sliced_buffer[i] = sliced as u64;
+        }
     }
+
     sliced_buffer
 }
 
@@ -166,7 +172,7 @@ fn read_hash_from_state(state: [u64; NUM_KECCAK_LANES]) -> [u8; 32] {
 }
 
 comptime fn unroll_loop(start: u32, end: u32, body: fn(u32) -> Quoted) -> Quoted {
-    let mut iterations: [Quoted] = &[];
+    let mut iterations: [Quoted] = @[];
     for i in start..end {
         iterations = iterations.push_back(body(i));
     }
