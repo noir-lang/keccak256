@@ -41,27 +41,7 @@ pub fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
     let state = apply_keccak_permutations(block_array, real_max_blocks);
 
     //3. sponge_squeeze
-    let mut result = [0; 32];
-    unroll_loop!(
-        0u32,
-        4u32,
-        |i: u32| {
-            quote {
-            let lane = state[$i] as Field;
-            let lane_le: [u8; 8] = lane.to_le_bytes();
-            result[8 * $i] = lane_le[0];
-            result[8 * $i + 1] = lane_le[1];
-            result[8 * $i + 2] = lane_le[2];
-            result[8 * $i + 3] = lane_le[3];
-            result[8 * $i + 4] = lane_le[4];
-            result[8 * $i + 5] = lane_le[5];
-            result[8 * $i + 6] = lane_le[6];
-            result[8 * $i + 7] = lane_le[7];
-        }
-        },
-    );
-
-    result
+    read_hash_from_state(state)
 }
 
 fn convert_to_u64_array<let N: u32>(input: [u8; N]) -> [u64; N / WORD_SIZE] {
@@ -132,7 +112,8 @@ fn apply_keccak_permutations<let N: u32>(
         for i in 1..max_blocks {
             let mut previous_state = intermediate_states[i - 1];
             for j in 0..LIMBS_PER_BLOCK {
-                previous_state[j] = previous_state[j] ^ flattened_blocks_array[i * LIMBS_PER_BLOCK + j];
+                previous_state[j] =
+                    previous_state[j] ^ flattened_blocks_array[i * LIMBS_PER_BLOCK + j];
             }
             intermediate_states[i] = keccakf1600(previous_state);
         }
@@ -162,8 +143,32 @@ pub(crate) fn apply_keccak_padding<let BLOCK_BYTES: u32>(
     }
 }
 
+fn read_hash_from_state(state: [u64; NUM_KECCAK_LANES]) -> [u8; 32] {
+    let mut result = [0; 32];
+    unroll_loop!(
+        0u32,
+        4u32,
+        |i: u32| {
+            quote {
+            let lane = state[$i] as Field;
+            let lane_le: [u8; 8] = lane.to_le_bytes();
+            result[8 * $i] = lane_le[0];
+            result[8 * $i + 1] = lane_le[1];
+            result[8 * $i + 2] = lane_le[2];
+            result[8 * $i + 3] = lane_le[3];
+            result[8 * $i + 4] = lane_le[4];
+            result[8 * $i + 5] = lane_le[5];
+            result[8 * $i + 6] = lane_le[6];
+            result[8 * $i + 7] = lane_le[7];
+        }
+        },
+    );
+
+    result
+}
+
 comptime fn unroll_loop(start: u32, end: u32, body: fn(u32) -> Quoted) -> Quoted {
-    let mut iterations: [Quoted] = @[];
+    let mut iterations: [Quoted] = &[];
     for i in start..end {
         iterations = iterations.push_back(body(i));
     }
