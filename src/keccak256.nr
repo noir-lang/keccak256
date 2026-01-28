@@ -44,21 +44,17 @@ pub fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
 
         let mut sliced = 0;
         let mut v = 1;
-        sliced += v * (block_bytes[limb_start] as Field);
-        v *= 256;
-        sliced += v * (block_bytes[limb_start + 1] as Field);
-        v *= 256;
-        sliced += v * (block_bytes[limb_start + 2] as Field);
-        v *= 256;
-        sliced += v * (block_bytes[limb_start + 3] as Field);
-        v *= 256;
-        sliced += v * (block_bytes[limb_start + 4] as Field);
-        v *= 256;
-        sliced += v * (block_bytes[limb_start + 5] as Field);
-        v *= 256;
-        sliced += v * (block_bytes[limb_start + 6] as Field);
-        v *= 256;
-        sliced += v * (block_bytes[limb_start + 7] as Field);
+        unroll_loop!(
+            0u32,
+            WORD_SIZE,
+            |i: u32| {
+                quote {
+                    sliced += v * (block_bytes[limb_start + $i] as Field);
+                    v *= 256;
+                }
+            },
+        );
+
         sliced.assert_max_bit_size::<64>();
         sliced_buffer[i] = sliced as u64;
     }
@@ -68,23 +64,15 @@ pub fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
     // `real_max_blocks` is guaranteed to at least be `1`
     // We peel out the first block as to avoid a conditional inside of the loop.
     // Otherwise, a dynamic predicate can cause a blowup in a constrained runtime.
-    state[0] = sliced_buffer[0];
-    state[1] = sliced_buffer[1];
-    state[2] = sliced_buffer[2];
-    state[3] = sliced_buffer[3];
-    state[4] = sliced_buffer[4];
-    state[5] = sliced_buffer[5];
-    state[6] = sliced_buffer[6];
-    state[7] = sliced_buffer[7];
-    state[8] = sliced_buffer[8];
-    state[9] = sliced_buffer[9];
-    state[10] = sliced_buffer[10];
-    state[11] = sliced_buffer[11];
-    state[12] = sliced_buffer[12];
-    state[13] = sliced_buffer[13];
-    state[14] = sliced_buffer[14];
-    state[15] = sliced_buffer[15];
-    state[16] = sliced_buffer[16];
+    unroll_loop!(
+        0u32,
+        LIMBS_PER_BLOCK,
+        |i: u32| {
+            quote {
+            state[$i] = sliced_buffer[$i];
+        }
+        },
+    );
     state = keccakf1600(state);
 
     let state = if is_unconstrained() {
@@ -116,49 +104,24 @@ pub fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
 
     //3. sponge_squeeze
     let mut result = [0; 32];
-    let lane = state[0] as Field;
-    let lane_le: [u8; 8] = lane.to_le_bytes();
-    result[0] = lane_le[0];
-    result[1] = lane_le[1];
-    result[2] = lane_le[2];
-    result[3] = lane_le[3];
-    result[4] = lane_le[4];
-    result[5] = lane_le[5];
-    result[6] = lane_le[6];
-    result[7] = lane_le[7];
-
-    let lane = state[1] as Field;
-    let lane_le: [u8; 8] = lane.to_le_bytes();
-    result[8 * 1] = lane_le[0];
-    result[8 * 1 + 1] = lane_le[1];
-    result[8 * 1 + 2] = lane_le[2];
-    result[8 * 1 + 3] = lane_le[3];
-    result[8 * 1 + 4] = lane_le[4];
-    result[8 * 1 + 5] = lane_le[5];
-    result[8 * 1 + 6] = lane_le[6];
-    result[8 * 1 + 7] = lane_le[7];
-
-    let lane = state[2] as Field;
-    let lane_le: [u8; 8] = lane.to_le_bytes();
-    result[8 * 2] = lane_le[0];
-    result[8 * 2 + 1] = lane_le[1];
-    result[8 * 2 + 2] = lane_le[2];
-    result[8 * 2 + 3] = lane_le[3];
-    result[8 * 2 + 4] = lane_le[4];
-    result[8 * 2 + 5] = lane_le[5];
-    result[8 * 2 + 6] = lane_le[6];
-    result[8 * 2 + 7] = lane_le[7];
-
-    let lane = state[3] as Field;
-    let lane_le: [u8; 8] = lane.to_le_bytes();
-    result[8 * 3] = lane_le[0];
-    result[8 * 3 + 1] = lane_le[1];
-    result[8 * 3 + 2] = lane_le[2];
-    result[8 * 3 + 3] = lane_le[3];
-    result[8 * 3 + 4] = lane_le[4];
-    result[8 * 3 + 5] = lane_le[5];
-    result[8 * 3 + 6] = lane_le[6];
-    result[8 * 3 + 7] = lane_le[7];
+    unroll_loop!(
+        0u32,
+        4u32,
+        |i: u32| {
+            quote {
+            let lane = state[$i] as Field;
+            let lane_le: [u8; 8] = lane.to_le_bytes();
+            result[8 * $i] = lane_le[0];
+            result[8 * $i + 1] = lane_le[1];
+            result[8 * $i + 2] = lane_le[2];
+            result[8 * $i + 3] = lane_le[3];
+            result[8 * $i + 4] = lane_le[4];
+            result[8 * $i + 5] = lane_le[5];
+            result[8 * $i + 6] = lane_le[6];
+            result[8 * $i + 7] = lane_le[7];
+        }
+        },
+    );
 
     result
 }
@@ -181,4 +144,12 @@ pub(crate) fn apply_keccak_padding<let BLOCK_BYTES: u32>(
         block_bytes[message_size] = 0x01;
         block_bytes[real_blocks_bytes - 1] = 0x80;
     }
+}
+
+comptime fn unroll_loop(start: u32, end: u32, body: fn(u32) -> Quoted) -> Quoted {
+    let mut iterations: [Quoted] = &[];
+    for i in start..end {
+        iterations = iterations.push_back(body(i));
+    }
+    iterations.join(quote {})
 }
