@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1769608590712,
+  "lastUpdate": 1769608591778,
   "repoUrl": "https://github.com/noir-lang/keccak256",
   "entries": {
     "ACIR Opcodes": [
@@ -995,6 +995,50 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/noir-lang/keccak256/commit/f64ab3af714aa1a1e2699243037e0f11fe5bf706"
         },
         "date": 1769534308702,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "test_keccak256_1",
+            "value": 723,
+            "unit": "opcodes"
+          },
+          {
+            "name": "test_keccak256_100",
+            "value": 829,
+            "unit": "opcodes"
+          },
+          {
+            "name": "test_keccak256_135",
+            "value": 864,
+            "unit": "opcodes"
+          },
+          {
+            "name": "test_keccak256_256",
+            "value": 986,
+            "unit": "opcodes"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "15848336+TomAFrench@users.noreply.github.com",
+            "name": "Tom French",
+            "username": "TomAFrench"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ea2bf0e2fd10e0cfd655fa03b220465a9578448e",
+          "message": "chore: use comptime function to unroll loops (#16)",
+          "timestamp": "2026-01-28T13:56:09Z",
+          "tree_id": "3a82f5e705d050ef05c181faf16ed1d0ad1a5fc5",
+          "url": "https://github.com/noir-lang/keccak256/commit/ea2bf0e2fd10e0cfd655fa03b220465a9578448e"
+        },
+        "date": 1769608591763,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
