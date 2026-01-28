@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1769615285803,
+  "lastUpdate": 1769615286901,
   "repoUrl": "https://github.com/noir-lang/keccak256",
   "entries": {
     "ACIR Opcodes": [
@@ -1147,6 +1147,50 @@ window.BENCHMARK_DATA = {
           {
             "name": "test_keccak256_256",
             "value": 986,
+            "unit": "opcodes"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "15848336+TomAFrench@users.noreply.github.com",
+            "name": "Tom French",
+            "username": "TomAFrench"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d61f392ede30cda51cc16ecfde1382957e4f53ae",
+          "message": "chore: refactor keccak into subfunctions (#18)",
+          "timestamp": "2026-01-28T15:47:44Z",
+          "tree_id": "4b8b8a33f591a5c64673178124bebcb2871e0b06",
+          "url": "https://github.com/noir-lang/keccak256/commit/d61f392ede30cda51cc16ecfde1382957e4f53ae"
+        },
+        "date": 1769615286887,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "test_keccak256_1",
+            "value": 722,
+            "unit": "opcodes"
+          },
+          {
+            "name": "test_keccak256_100",
+            "value": 828,
+            "unit": "opcodes"
+          },
+          {
+            "name": "test_keccak256_135",
+            "value": 863,
+            "unit": "opcodes"
+          },
+          {
+            "name": "test_keccak256_256",
+            "value": 985,
             "unit": "opcodes"
           }
         ]
