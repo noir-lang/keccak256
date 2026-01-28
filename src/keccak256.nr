@@ -4,7 +4,6 @@ mod benchmarks;
 
 use std::hash::keccakf1600;
 use std::runtime::is_unconstrained;
-use std::static_assert;
 
 global BLOCK_SIZE_IN_BYTES: u32 = 136; //(1600 - BITS * 2) / WORD_SIZE;
 global WORD_SIZE: u32 = 8; // Limbs are made up of u64s so 8 bytes each.
@@ -15,28 +14,13 @@ global NUM_KECCAK_LANES: u32 = 25;
 pub fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
     assert(N >= message_size);
 
-    // Copy input to block bytes. For that we'll need at least input bytes (N)
-    // but we want it to be padded to a multiple of BLOCK_SIZE_IN_BYTES.
-    let mut block_bytes = [0; ((N / BLOCK_SIZE_IN_BYTES) + 1) * BLOCK_SIZE_IN_BYTES];
-    if is_unconstrained() {
-        for i in 0..message_size {
-            block_bytes[i] = input[i];
-        }
-    } else {
-        for i in 0..N {
-            if i < message_size {
-                block_bytes[i] = input[i];
-            }
-        }
-    }
-
     //1. format_input_lanes and apply padding
     let real_max_blocks = (message_size + BLOCK_SIZE_IN_BYTES) / BLOCK_SIZE_IN_BYTES;
 
-    // Apply Keccak padding (0x01 after message, 0x80 at block end)
-    apply_keccak_padding(&mut block_bytes, message_size, real_max_blocks);
+    let mut block_array = convert_to_u64_array(input, message_size);
 
-    let block_array = convert_to_u64_array(block_bytes);
+    // Apply Keccak padding (0x01 after message, 0x80 at block end)
+    apply_keccak_padding(&mut block_array, message_size, real_max_blocks);
 
     let state = apply_keccak_permutations(block_array, real_max_blocks);
 
@@ -44,32 +28,54 @@ pub fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
     read_hash_from_state(state)
 }
 
-fn convert_to_u64_array<let N: u32>(input: [u8; N]) -> [u64; N / WORD_SIZE] {
-    static_assert(
-        N % WORD_SIZE == 0,
-        "Byte array is expected to cleanly divide into chunks",
-    );
-    // populate a vector of 64-bit limbs from our byte array
-    let mut sliced_buffer = [0; N / WORD_SIZE];
-    for i in 0..sliced_buffer.len() {
-        let limb_start = WORD_SIZE * i;
+fn convert_to_u64_array<let N: u32>(
+    input: [u8; N],
+    message_size: u32,
+) -> [u64; ((N / BLOCK_SIZE_IN_BYTES) + 1) * LIMBS_PER_BLOCK] {
+    // Output is padded to a multiple of BLOCK_SIZE_IN_BYTES
+    let mut sliced_buffer = [0; ((N / BLOCK_SIZE_IN_BYTES) + 1) * LIMBS_PER_BLOCK];
 
-        let mut sliced = 0;
-        let mut v = 1;
-        unroll_loop!(
-            0u32,
-            WORD_SIZE,
-            |i: u32| {
-                quote {
-                    sliced += v * (input[limb_start + $i] as Field);
-                    v *= 256;
-                }
-            },
-        );
+    if is_unconstrained() {
+        // Process each byte of the message and accumulate into the appropriate limb
+        for i in 0..message_size {
+            let limb_index = i / WORD_SIZE;
+            let byte_offset = i % WORD_SIZE;
+            sliced_buffer[limb_index] += (input[i] as u64) << (8 * (byte_offset as u64));
+        }
+    } else {
+        // In constrained code, it's simpler to copy to a larger intermediate array of a size such that we don't need to apply
+        // any guards when we're constructing the `u64` limbs.
 
-        sliced.assert_max_bit_size::<64>();
-        sliced_buffer[i] = sliced as u64;
+        // We need at least input bytes (N) but we want it to be padded to a multiple of BLOCK_SIZE_IN_BYTES.
+        let mut block_bytes = [0; ((N / BLOCK_SIZE_IN_BYTES) + 1) * BLOCK_SIZE_IN_BYTES];
+
+        for i in 0..N {
+            if i < message_size {
+                block_bytes[i] = input[i];
+            }
+        }
+
+        for i in 0..((N / BLOCK_SIZE_IN_BYTES) + 1) * LIMBS_PER_BLOCK {
+            let limb_start = WORD_SIZE * i;
+
+            let mut sliced = 0;
+            let mut v = 1;
+            unroll_loop!(
+                0u32,
+                WORD_SIZE,
+                |j: u32| {
+                    quote {
+                        sliced += v * (block_bytes[limb_start + $j] as Field);
+                        v *= 256;
+                    }
+                },
+            );
+
+            sliced.assert_max_bit_size::<64>();
+            sliced_buffer[i] = sliced as u64;
+        }
     }
+
     sliced_buffer
 }
 
@@ -123,24 +129,22 @@ fn apply_keccak_permutations<let N: u32>(
     }
 }
 
-// Apply Keccak padding to the block_bytes array
+// Apply Keccak padding to the u64 block array
 // Append 0x01 after message, then 0x80 at end of block
 // If both padding bytes collide at the same byte, combine them as 0x81
 #[inline_always]
-pub(crate) fn apply_keccak_padding<let BLOCK_BYTES: u32>(
-    block_bytes: &mut [u8; BLOCK_BYTES],
+pub(crate) fn apply_keccak_padding<let N: u32>(
+    block_array: &mut [u64; N],
     message_size: u32,
     real_max_blocks: u32,
 ) {
-    let real_blocks_bytes = real_max_blocks * BLOCK_SIZE_IN_BYTES;
+    // Calculate limb index and byte offset within the limb (little-endian)
+    let start_limb_index = message_size / WORD_SIZE;
+    let start_byte_offset = message_size % WORD_SIZE;
 
-    if message_size == real_blocks_bytes - 1 {
-        // Combine both padding bits: 0x01 | 0x80 = 0x81
-        block_bytes[message_size] = 0x81;
-    } else {
-        block_bytes[message_size] = 0x01;
-        block_bytes[real_blocks_bytes - 1] = 0x80;
-    }
+    block_array[start_limb_index] += 0x01 << (8 * (start_byte_offset as u64));
+    // The end padding byte (0x80) always goes at byte 7 of the last limb
+    block_array[real_max_blocks * LIMBS_PER_BLOCK - 1] += 0x80 << 56;
 }
 
 fn read_hash_from_state(state: [u64; NUM_KECCAK_LANES]) -> [u8; 32] {
