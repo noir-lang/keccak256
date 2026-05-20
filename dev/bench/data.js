@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779297724912,
+  "lastUpdate": 1779297726319,
   "repoUrl": "https://github.com/noir-lang/keccak256",
   "entries": {
     "ACIR Opcodes": [
@@ -1411,6 +1411,50 @@ window.BENCHMARK_DATA = {
           {
             "name": "test_keccak256_256",
             "value": 854,
+            "unit": "opcodes"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "jfecher11@gmail.com",
+            "name": "jfecher",
+            "username": "jfecher"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "35f8f0ff02052e90990ff2bb15545ff955571d7f",
+          "message": "fix: Update vector syntax (#22)\n\n* Update vector syntax\n\n* Update minimum noir version",
+          "timestamp": "2026-05-20T12:21:37-05:00",
+          "tree_id": "74d564b5b7849a7a70bf390597b649a1056b74ec",
+          "url": "https://github.com/noir-lang/keccak256/commit/35f8f0ff02052e90990ff2bb15545ff955571d7f"
+        },
+        "date": 1779297726306,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "test_keccak256_1",
+            "value": 590,
+            "unit": "opcodes"
+          },
+          {
+            "name": "test_keccak256_100",
+            "value": 692,
+            "unit": "opcodes"
+          },
+          {
+            "name": "test_keccak256_135",
+            "value": 727,
+            "unit": "opcodes"
+          },
+          {
+            "name": "test_keccak256_256",
+            "value": 848,
             "unit": "opcodes"
           }
         ]
