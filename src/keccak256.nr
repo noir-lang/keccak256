@@ -112,20 +112,25 @@ fn apply_keccak_permutations<let N: u32>(
 
         state
     } else {
-        // We store the intermediate states in an array to avoid having a dynamic predicate
-        // inside the loop, which can cause a blowup in a constrained runtime.
-        let mut intermediate_states = [state; N / LIMBS_PER_BLOCK + 1];
-        for i in 1..max_blocks {
-            let mut previous_state = intermediate_states[i - 1];
-            for j in 0..LIMBS_PER_BLOCK {
-                previous_state[j] =
-                    previous_state[j] ^ flattened_blocks_array[i * LIMBS_PER_BLOCK + j];
+        if N / LIMBS_PER_BLOCK <= 1 {
+            // Single block: the first permutation above is the only one needed.
+            state
+        } else {
+            // We store the intermediate states in an array to avoid having a dynamic predicate
+            // inside the loop, which can cause a blowup in a constrained runtime.
+            let mut intermediate_states = [state; N / LIMBS_PER_BLOCK + 1];
+            for i in 1..max_blocks {
+                let mut previous_state = intermediate_states[i - 1];
+                for j in 0..LIMBS_PER_BLOCK {
+                    previous_state[j] =
+                        previous_state[j] ^ flattened_blocks_array[i * LIMBS_PER_BLOCK + j];
+                }
+                intermediate_states[i] = keccakf1600(previous_state);
             }
-            intermediate_states[i] = keccakf1600(previous_state);
-        }
 
-        // We can then take the state as of `num_blocks`, ignoring later permutations.
-        intermediate_states[num_blocks - 1]
+            // We can then take the state as of `num_blocks`, ignoring later permutations.
+            intermediate_states[num_blocks - 1]
+        }
     }
 }
 

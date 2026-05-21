@@ -29,6 +29,14 @@ unconstrained fn test_keccak256_135(input: [u8; 135], len: u32) {
 }
 
 #[test]
+unconstrained fn test_keccak256_136(input: [u8; 136], len: u32) {
+    let actual_len = len % 136;
+    let result = keccak256(input, actual_len);
+    let expected = keccak256_hash_oracle(input, actual_len);
+    assert_eq(result, expected);
+}
+
+#[test]
 unconstrained fn test_keccak256_256(input: [u8; 256], len: u32) {
     let actual_len = len % 257;
     let result = keccak256(input, actual_len);
