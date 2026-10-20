@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792505990555,
+  "lastUpdate": 1792505994898,
   "repoUrl": "https://github.com/noir-lang/keccak256",
   "entries": {
     "ACIR Opcodes": [
@@ -1081,6 +1081,50 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/noir-lang/keccak256/commit/08c3f886516b0b596f8db0f585ceb5d623e89ee9"
         },
         "date": 1779380371817,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "test_keccak256_1.json/main",
+            "value": 40626,
+            "unit": "circuit_size"
+          },
+          {
+            "name": "test_keccak256_100.json/main",
+            "value": 40626,
+            "unit": "circuit_size"
+          },
+          {
+            "name": "test_keccak256_135.json/main",
+            "value": 40626,
+            "unit": "circuit_size"
+          },
+          {
+            "name": "test_keccak256_256.json/main",
+            "value": 44738,
+            "unit": "circuit_size"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49558828+AztecBot@users.noreply.github.com",
+            "name": "Aztec Bot",
+            "username": "AztecBot"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3a81a0e3ba7167c65536e9aa9a9500d570d2d3e3",
+          "message": "chore: add experimental software warning to README (#23)\n\n* chore: add experimental software warning to README\n\n* chore: use noirup v0.1.5 and include Noir pre-releases in CI version list\n\n* chore: add MIT license\n\n* chore: use Apache-2.0 license\n\n* chore: fill in copyright notice in LICENSE\n\n* chore: credit Aztec Labs and Aztec Foundation as copyright holders",
+          "timestamp": "2026-10-20T15:19:25+01:00",
+          "tree_id": "34001c39259a40d02a423c849239a821e7d10c69",
+          "url": "https://github.com/noir-lang/keccak256/commit/3a81a0e3ba7167c65536e9aa9a9500d570d2d3e3"
+        },
+        "date": 1792505994884,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
