@@ -1,5 +1,10 @@
 # Keccak256 Hashing Library
 
+> [!WARNING]
+> **This library is experimental software. It has not been fully audited and is not guaranteed to be secure. Expect bugs!**
+>
+> Bugs in this library can lead to under-constrained circuits, allowing invalid proofs to be accepted. Do not rely on it to protect real assets or sensitive data without your own independent review.
+
 This package contains the Keccak256 hashing interface, formerly in the Noir standard library.
 
 ## Noir Version Compatibility
