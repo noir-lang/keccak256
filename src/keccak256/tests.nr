@@ -1,4 +1,4 @@
-use super::{apply_keccak_padding, keccak256};
+use super::{apply_keccak_padding, keccak256, keccak256_limbs};
 
 #[test]
 fn test_padding_no_collision() {
@@ -126,10 +126,29 @@ fn disabled_call_accepts_length_above_capacity(length: u32) {
     // The call is disabled for every length above capacity, so it must not fail on them.
     if length <= 1 {
         let _ = keccak256([0; 1], length);
+        let _ = keccak256_limbs([0; 1], length);
     }
 }
 
 #[test(should_fail_with = "Keccak message_size exceeds input capacity")]
 fn rejects_length_above_capacity() {
     let _ = keccak256([0; 1], 2);
+}
+
+#[test]
+fn limbs_match_digest_bytes() {
+    let mut input = [0; 273];
+    for i in 0..273 {
+        input[i] = i as u8;
+    }
+    for length in [0, 1, 135, 136, 137, 272, 273] {
+        let digest = keccak256(input, length);
+        let limbs = keccak256_limbs(input, length);
+        for i in 0..4 {
+            let lane: [u8; 8] = (limbs[i] as Field).to_le_bytes();
+            for j in 0..8 {
+                assert_eq(lane[j], digest[8 * i + j]);
+            }
+        }
+    }
 }

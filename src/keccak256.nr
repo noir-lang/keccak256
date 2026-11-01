@@ -29,6 +29,18 @@ fn bounded_length<let N: u32>(message_size: u32) -> u32 {
 
 #[no_predicates]
 fn keccak256_inner<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
+    read_hash_from_state(keccak256_state(input, message_size))
+}
+
+/// Hash input[0..message_size] and return the digest as four little-endian u64 lanes:
+/// lane i holds digest bytes [8*i..8*i+8]. Same length rules as `keccak256`.
+pub fn keccak256_limbs<let N: u32>(input: [u8; N], message_size: u32) -> [u64; 4] {
+    let state = keccak256_state(input, bounded_length::<N>(message_size));
+    [state[0], state[1], state[2], state[3]]
+}
+
+#[no_predicates]
+fn keccak256_state<let N: u32>(input: [u8; N], message_size: u32) -> [u64; NUM_KECCAK_LANES] {
     assert(N >= message_size);
 
     //1. format_input_lanes and apply padding
@@ -39,10 +51,7 @@ fn keccak256_inner<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
     // Apply Keccak padding (0x01 after message, 0x80 at block end)
     apply_keccak_padding(&mut block_array, message_size, real_max_blocks);
 
-    let state = apply_keccak_permutations(block_array, real_max_blocks);
-
-    //3. sponge_squeeze
-    read_hash_from_state(state)
+    apply_keccak_permutations(block_array, real_max_blocks)
 }
 
 fn convert_to_u64_array<let N: u32>(
