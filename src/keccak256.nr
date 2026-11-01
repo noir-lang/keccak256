@@ -1,9 +1,12 @@
+mod hasher;
 mod tests;
 mod oracle_tests;
 mod benchmarks;
 
 use std::hash::keccakf1600;
 use std::runtime::is_unconstrained;
+
+pub use hasher::KeccakHasher;
 
 global BLOCK_SIZE_IN_BYTES: u32 = 136; //(1600 - BITS * 2) / WORD_SIZE;
 global WORD_SIZE: u32 = 8; // Limbs are made up of u64s so 8 bytes each.

@@ -34,6 +34,10 @@ fn main() {
 
 `keccak256_limbs(input, len)` returns the same digest as four little-endian `u64` lanes (`[u64; 4]`), as held in the Keccak state.
 
+`KeccakHasher` hashes a message incrementally: `KeccakHasher::new()`, then `add_byte(u8)` or `add_u64(u64)` (eight bytes, little-endian, at any alignment), then `finish()` for `[u8; 32]` or `finish_to_limbs()` for `[u64; 4]`. It produces the same digest as `keccak256`.
+
+Each `add_byte`/`add_u64` call that runs under a runtime condition (for example `if i < len { hasher.add_byte(b) }`) costs a `keccakf1600` permutation, because the circuit cannot know where the block boundaries fall. Use the hasher when the sequence of calls is fixed at compile time, and `keccak256(input, message_size)` for runtime-length input.
+
 ## Testing
 
 ### Unit Tests

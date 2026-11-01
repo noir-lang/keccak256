@@ -1,4 +1,4 @@
-use super::{apply_keccak_padding, keccak256, keccak256_limbs};
+use super::{apply_keccak_padding, keccak256, keccak256_limbs, KeccakHasher};
 
 #[test]
 fn test_padding_no_collision() {
@@ -151,4 +151,54 @@ fn limbs_match_digest_bytes() {
             }
         }
     }
+}
+
+#[test]
+fn hasher_matches_one_shot_at_padding_boundaries() {
+    let mut input = [0; 273];
+    for i in 0..273 {
+        input[i] = i as u8;
+    }
+    for length in [0, 1, 7, 8, 9, 134, 135, 136, 137, 272, 273] {
+        let mut hasher = KeccakHasher::new();
+        for i in 0..length {
+            hasher.add_byte(input[i]);
+        }
+        assert_eq(hasher.finish(), keccak256(input, length));
+        assert_eq(hasher.finish_to_limbs(), keccak256_limbs(input, length));
+    }
+}
+
+#[test]
+fn hasher_add_u64_matches_bytes_at_every_alignment() {
+    for alignment in 0..8 {
+        let mut byte_hasher = KeccakHasher::new();
+        let mut lane_hasher = KeccakHasher::new();
+        for i in 0..alignment {
+            byte_hasher.add_byte(i as u8);
+            lane_hasher.add_byte(i as u8);
+        }
+        // 35 lanes cross two block boundaries.
+        for lane in 0..35 {
+            let value = 0x8070605040302010 + lane as u64;
+            lane_hasher.add_u64(value);
+            let bytes: [u8; 8] = (value as Field).to_le_bytes();
+            for byte in bytes {
+                byte_hasher.add_byte(byte);
+            }
+        }
+        assert_eq(lane_hasher.finish_to_limbs(), byte_hasher.finish_to_limbs());
+    }
+}
+
+#[test]
+fn hasher_matches_one_shot_at_runtime_length(input: [u8; 140], length: u32) {
+    let length = length % 141;
+    let mut hasher = KeccakHasher::new();
+    for i in 0..140 {
+        if i < length {
+            hasher.add_byte(input[i]);
+        }
+    }
+    assert_eq(hasher.finish(), keccak256(input, length));
 }
