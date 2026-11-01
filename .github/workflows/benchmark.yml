@@ -7,7 +7,7 @@ on:
   pull_request:
 
 env:
-  MINIMUM_NOIR_VERSION: 1.0.0-beta.19
+  MINIMUM_NOIR_VERSION: 1.0.0
 
 jobs:
   test:
@@ -33,7 +33,7 @@ jobs:
       - name: Install bb
         run: |
           curl -L https://raw.githubusercontent.com/AztecProtocol/aztec-packages/refs/heads/next/barretenberg/bbup/install | bash
-          ~/.bb/bbup -nv ${{env.MINIMUM_NOIR_VERSION}}
+          ~/.bb/bbup -v 6.0.0
           sudo apt install libc++-dev
 
       - name: Build Noir benchmark programs
