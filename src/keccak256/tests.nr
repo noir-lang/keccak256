@@ -152,3 +152,17 @@ fn limbs_match_digest_bytes() {
         }
     }
 }
+
+unconstrained fn keccak256_unconstrained<let N: u32>(input: [u8; N], length: u32) -> [u8; 32] {
+    keccak256(input, length)
+}
+
+// The fuzzer supplies a runtime `length`, so this runs the constrained kernel's
+// variable-length path and checks it against the Brillig one, which the oracle tests check.
+#[test]
+fn constrained_matches_unconstrained_at_runtime_length(input: [u8; 281], length: u32) {
+    let length = length % 282;
+    // Safety: test reference only.
+    let expected = unsafe { keccak256_unconstrained(input, length) };
+    assert_eq(keccak256(input, length), expected);
+}
