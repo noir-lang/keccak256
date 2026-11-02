@@ -149,3 +149,36 @@ fn lanes_match_digest_bytes() {
         assert_eq(keccak256_lanes(input, length), expected);
     }
 }
+
+unconstrained fn keccak256_unconstrained<let N: u32>(input: [u8; N], length: u32) -> [u8; 32] {
+    keccak256(input, length)
+}
+
+// The fuzzer supplies a runtime `length`, so this runs the constrained kernel's
+// variable-length path and checks it against the Brillig one, which the oracle tests check.
+#[test]
+fn constrained_matches_unconstrained_at_runtime_length(input: [u8; 281], length: u32) {
+    let length = length % 282;
+    // Safety: test reference only.
+    let expected = unsafe { keccak256_unconstrained(input, length) };
+    assert_eq(keccak256(input, length), expected);
+}
+
+// Lengths on either side of every lane and block boundary a 281-byte input can reach: the
+// ends of a lane (7, 8), of a block (135, 136, 137; 271, 272, 273) and of the input (281),
+// plus lengths ending at every other byte of a lane (3, 140, 274, 277, 278), so that
+// `length % 8` takes all eight values.
+// `black_box` keeps each length a runtime value, so the constrained kernel's length logic is
+// executed rather than folded away at compile time.
+#[test]
+fn constrained_matches_unconstrained_at_block_boundaries() {
+    let input: [u8; 281] = [0; 281].mapi(|i, _| i as u8);
+    for length in [
+        0, 1, 3, 7, 8, 127, 128, 135, 136, 137, 140, 143, 144, 271, 272, 273, 274, 277, 278, 281,
+    ] {
+        let length = std::hint::black_box(length);
+        // Safety: test reference only.
+        let expected = unsafe { keccak256_unconstrained(input, length) };
+        assert_eq(keccak256(input, length), expected);
+    }
+}
