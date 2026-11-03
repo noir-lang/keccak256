@@ -140,12 +140,12 @@ fn lanes_match_digest_bytes() {
     let input: [u8; 273] = [0; 273].mapi(|i, _| i as u8);
     for length in [0, 1, 135, 136, 137, 272, 273] {
         let digest = keccak256(input, length);
-        let lanes = keccak256_lanes(input, length);
+        let mut expected = [0; 4];
         for i in 0..4 {
-            let lane_bytes: [u8; 8] = (lanes[i] as Field).to_le_bytes();
             for j in 0..8 {
-                assert_eq(lane_bytes[j], digest[8 * i + j]);
+                expected[i] |= (digest[8 * i + j] as u64) << (8 * j as u64);
             }
         }
+        assert_eq(keccak256_lanes(input, length), expected);
     }
 }
