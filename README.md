@@ -32,6 +32,8 @@ fn main() {
 }
 ```
 
+`keccak256_lanes(input, len)` returns the same digest as four little-endian `u64` lanes (`[u64; 4]`), as held in the Keccak state.
+
 ## Testing
 
 ### Unit Tests

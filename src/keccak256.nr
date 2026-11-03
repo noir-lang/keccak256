@@ -9,11 +9,12 @@ global BLOCK_SIZE_IN_BYTES: u32 = 136; //(1600 - BITS * 2) / WORD_SIZE;
 global WORD_SIZE: u32 = 8; // Limbs are made up of u64s so 8 bytes each.
 global LIMBS_PER_BLOCK: u32 = BLOCK_SIZE_IN_BYTES / WORD_SIZE;
 global NUM_KECCAK_LANES: u32 = 25;
+global DIGEST_LANES: u32 = 32 / WORD_SIZE;
 
 /// Hash input[0..message_size]. Active calls require message_size <= N.
 /// Disabled calls accept arbitrary lengths; their unused digest is unspecified.
 pub fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
-    keccak256_inner(input, bounded_length::<N>(message_size))
+    read_hash_from_state(keccak256_state(input, bounded_length::<N>(message_size)))
 }
 
 // Keep the range assertion predicated, but sanitize the value passed into the
@@ -27,8 +28,15 @@ fn bounded_length<let N: u32>(message_size: u32) -> u32 {
     }
 }
 
+/// Hash input[0..message_size] and return the digest as four little-endian u64 lanes:
+/// lane i holds digest bytes [8*i..8*i+8]. Same length rules as `keccak256`.
+pub fn keccak256_lanes<let N: u32>(input: [u8; N], message_size: u32) -> [u64; DIGEST_LANES] {
+    let state = keccak256_state(input, bounded_length::<N>(message_size));
+    [state[0], state[1], state[2], state[3]]
+}
+
 #[no_predicates]
-fn keccak256_inner<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
+fn keccak256_state<let N: u32>(input: [u8; N], message_size: u32) -> [u64; NUM_KECCAK_LANES] {
     assert(N >= message_size);
 
     //1. format_input_lanes and apply padding
@@ -39,10 +47,7 @@ fn keccak256_inner<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
     // Apply Keccak padding (0x01 after message, 0x80 at block end)
     apply_keccak_padding(&mut block_array, message_size, real_max_blocks);
 
-    let state = apply_keccak_permutations(block_array, real_max_blocks);
-
-    //3. sponge_squeeze
-    read_hash_from_state(state)
+    apply_keccak_permutations(block_array, real_max_blocks)
 }
 
 fn convert_to_u64_array<let N: u32>(
@@ -173,7 +178,7 @@ fn read_hash_from_state(state: [u64; NUM_KECCAK_LANES]) -> [u8; 32] {
     let mut result = [0; 32];
     unroll_loop!(
         0u32,
-        4u32,
+        DIGEST_LANES,
         |i: u32| {
             quote {
             let lane = state[$i] as Field;
