@@ -93,8 +93,8 @@ fn apply_keccak_permutations<let N: u32>(
         LIMBS_PER_BLOCK,
         |i: u32| {
             quote {
-            state[$i] = flattened_blocks_array[$i];
-        }
+                state[$i] = flattened_blocks_array[$i];
+            }
         },
     );
     state = keccakf1600(state);
