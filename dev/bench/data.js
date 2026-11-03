@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793678319587,
+  "lastUpdate": 1793678321013,
   "repoUrl": "https://github.com/noir-lang/keccak256",
   "entries": {
     "ACIR Opcodes": [
@@ -1807,6 +1807,50 @@ window.BENCHMARK_DATA = {
           {
             "name": "test_keccak256_256",
             "value": 848,
+            "unit": "opcodes"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mike@aztec.foundation",
+            "name": "Michael Connor",
+            "username": "iAmMichaelConnor"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7b1894dd57c0c3d137ebc8d7d597151e372930c4",
+          "message": "fix(ci): enforce the yarn lockfile when installing test dependencies (#26)\n\nThe test and nightly canary jobs run Yarn 1 (the runner default; the\nrepo pins no packageManager). Yarn 1 does not recognise `--immutable`, a\nYarn 2+ flag, and silently rewrites yarn.lock when it is out of date. Use\n`--frozen-lockfile`, which fails the install instead.",
+          "timestamp": "2026-11-03T11:58:07+08:00",
+          "tree_id": "5937cbc73be04fc274523c1124febb482d9e3d72",
+          "url": "https://github.com/noir-lang/keccak256/commit/7b1894dd57c0c3d137ebc8d7d597151e372930c4"
+        },
+        "date": 1793678321003,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "test_keccak256_1",
+            "value": 579,
+            "unit": "opcodes"
+          },
+          {
+            "name": "test_keccak256_100",
+            "value": 681,
+            "unit": "opcodes"
+          },
+          {
+            "name": "test_keccak256_135",
+            "value": 716,
+            "unit": "opcodes"
+          },
+          {
+            "name": "test_keccak256_256",
+            "value": 836,
             "unit": "opcodes"
           }
         ]
