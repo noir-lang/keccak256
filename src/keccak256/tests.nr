@@ -120,3 +120,16 @@ fn regression_8() {
     ];
     assert_eq(result, expected_result);
 }
+
+#[test]
+fn disabled_call_accepts_length_above_capacity(length: u32) {
+    // The call is disabled for every length above capacity, so it must not fail on them.
+    if length <= 1 {
+        let _ = keccak256([0; 1], length);
+    }
+}
+
+#[test(should_fail_with = "Keccak message_size exceeds input capacity")]
+fn rejects_length_above_capacity() {
+    let _ = keccak256([0; 1], 2);
+}

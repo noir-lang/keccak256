@@ -10,8 +10,25 @@ global WORD_SIZE: u32 = 8; // Limbs are made up of u64s so 8 bytes each.
 global LIMBS_PER_BLOCK: u32 = BLOCK_SIZE_IN_BYTES / WORD_SIZE;
 global NUM_KECCAK_LANES: u32 = 25;
 
-#[no_predicates]
+/// Hash input[0..message_size]. Active calls require message_size <= N.
+/// Disabled calls accept arbitrary lengths; their unused digest is unspecified.
 pub fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
+    keccak256_inner(input, bounded_length::<N>(message_size))
+}
+
+// Keep the range assertion predicated, but sanitize the value passed into the
+// unpredicated hashing kernel. A disabled caller must not make that kernel fail.
+fn bounded_length<let N: u32>(message_size: u32) -> u32 {
+    assert(message_size <= N, "Keccak message_size exceeds input capacity");
+    if message_size <= N {
+        message_size
+    } else {
+        0
+    }
+}
+
+#[no_predicates]
+fn keccak256_inner<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
     assert(N >= message_size);
 
     //1. format_input_lanes and apply padding
