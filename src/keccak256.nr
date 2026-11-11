@@ -14,7 +14,9 @@ global DIGEST_LANES: u32 = 32 / WORD_SIZE;
 /// Hash input[0..message_size]. Active calls require message_size <= N.
 /// Disabled calls accept arbitrary lengths; their unused digest is unspecified.
 pub fn keccak256<let N: u32>(input: [u8; N], message_size: u32) -> [u8; 32] {
-    read_hash_from_state(keccak256_state(input, bounded_length::<N>(message_size)))
+    digest_to_bytes(
+        keccak256_digest_lanes(input, bounded_length::<N>(message_size)),
+    )
 }
 
 // Keep the range assertion predicated, but sanitize the value passed into the
@@ -31,23 +33,126 @@ fn bounded_length<let N: u32>(message_size: u32) -> u32 {
 /// Hash input[0..message_size] and return the digest as four little-endian u64 lanes:
 /// lane i holds digest bytes [8*i..8*i+8]. Same length rules as `keccak256`.
 pub fn keccak256_lanes<let N: u32>(input: [u8; N], message_size: u32) -> [u64; DIGEST_LANES] {
-    let state = keccak256_state(input, bounded_length::<N>(message_size));
-    [state[0], state[1], state[2], state[3]]
+    keccak256_digest_lanes(input, bounded_length::<N>(message_size))
 }
 
 #[no_predicates]
-fn keccak256_state<let N: u32>(input: [u8; N], message_size: u32) -> [u64; NUM_KECCAK_LANES] {
+fn keccak256_digest_lanes<let N: u32>(input: [u8; N], message_size: u32) -> [u64; DIGEST_LANES] {
     assert(N >= message_size);
 
-    //1. format_input_lanes and apply padding
-    let real_max_blocks = (message_size + BLOCK_SIZE_IN_BYTES) / BLOCK_SIZE_IN_BYTES;
+    if is_unconstrained() {
+        // Brillig has runtime loop bounds, so it only absorbs the blocks the message needs.
+        let real_max_blocks = (message_size + BLOCK_SIZE_IN_BYTES) / BLOCK_SIZE_IN_BYTES;
+        let mut block_array = convert_to_u64_array(input, message_size);
+        apply_keccak_padding(&mut block_array, message_size, real_max_blocks);
+        let state = apply_keccak_permutations(block_array, real_max_blocks);
+        [state[0], state[1], state[2], state[3]]
+    } else {
+        constrained_digest_lanes(input, message_size)
+    }
+}
 
-    let mut block_array = convert_to_u64_array(input, message_size);
+// Constrained sponge. It absorbs every block that an N-byte message could need and
+// selects the digest of the block where this message ends.
+//
+// Write message_size = 8 * L + r with 0 <= r < 8. Padded lane j (counting across blocks) is
+//   message lane j                                        if j < L,
+//   the first r bytes of message lane L, plus 0x01 << 8r  if j == L,
+//   zero                                                  if j > L,
+// and the last lane of the final block b (the block with 17b <= L < 17b + 17) also gets
+// 0x80 << 56. If r == 7 and lane L ends block b, both padding bytes land in byte 7 (0x81).
+//
+// One comparison per lane, before[j] = (j < L), replaces a comparison per input byte, the
+// division by the block size and the memory tables that a runtime index into the lanes or
+// states would need.
+fn constrained_digest_lanes<let N: u32>(input: [u8; N], message_size: u32) -> [u64; DIGEST_LANES] {
+    let lane_index = message_size / WORD_SIZE;
+    let byte_offset = message_size % WORD_SIZE;
 
-    // Apply Keccak padding (0x01 after message, 0x80 at block end)
-    apply_keccak_padding(&mut block_array, message_size, real_max_blocks);
+    // before[j] = (j < L). Lanes from N / 8 on can never precede the boundary, since L <= N / 8.
+    let mut lane_flags = [false; N / WORD_SIZE];
+    let mut before = [0; ((N / BLOCK_SIZE_IN_BYTES) + 1) * LIMBS_PER_BLOCK];
+    for j in 0..N / WORD_SIZE {
+        lane_flags[j] = j < lane_index;
+        before[j] = lane_flags[j] as Field;
+    }
+    // below[k] = (k < r); r <= 7, so below[7] is always zero.
+    let mut offset_flags = [false; WORD_SIZE - 1];
+    for k in 0..WORD_SIZE - 1 {
+        offset_flags[k] = k < byte_offset;
+    }
 
-    apply_keccak_permutations(block_array, real_max_blocks)
+    // Message lane j holds input bytes 8j..8j+8 little-endian, zero past the input.
+    let mut message_lanes = [0; N / WORD_SIZE + 1];
+    for j in 0..N / WORD_SIZE + 1 {
+        let mut lane = 0;
+        let mut v = 1;
+        for k in 0..WORD_SIZE {
+            if j * WORD_SIZE + k < N {
+                lane += v * (input[j * WORD_SIZE + k] as Field);
+            }
+            v *= 256;
+        }
+        message_lanes[j] = lane;
+    }
+
+    // before[j - 1] - before[j] is one at j == L and zero elsewhere: select message lane L.
+    let mut boundary = 0;
+    for j in 0..N / WORD_SIZE + 1 {
+        let previous = if j == 0 { 1 } else { before[j - 1] };
+        boundary += (previous - before[j]) * message_lanes[j];
+    }
+    let boundary_bytes: [u8; 8] = boundary.to_le_bytes();
+
+    // Keep the first r bytes of lane L and put 0x01 at byte r.
+    let mut padded_boundary = 0;
+    let mut previous_below = 1;
+    let mut v = 1;
+    for k in 0..WORD_SIZE {
+        let below = if k < WORD_SIZE - 1 {
+            offset_flags[k] as Field
+        } else {
+            0
+        };
+        padded_boundary += below * v * (boundary_bytes[k] as Field) + (previous_below - below) * v;
+        previous_below = below;
+        v *= 256;
+    }
+
+    let mut lanes = [0; ((N / BLOCK_SIZE_IN_BYTES) + 1) * LIMBS_PER_BLOCK];
+    for j in 0..N / WORD_SIZE + 1 {
+        let previous = if j == 0 { 1 } else { before[j - 1] };
+        lanes[j] = before[j] * message_lanes[j] + (previous - before[j]) * padded_boundary;
+    }
+    for b in 0..(N / BLOCK_SIZE_IN_BYTES) + 1 {
+        // Block b is the final block iff 17b <= L < 17b + 17.
+        let started = if b == 0 {
+            1
+        } else {
+            before[b * LIMBS_PER_BLOCK - 1]
+        };
+        let is_final = started - before[b * LIMBS_PER_BLOCK + LIMBS_PER_BLOCK - 1];
+        lanes[b * LIMBS_PER_BLOCK + LIMBS_PER_BLOCK - 1] += is_final * 0x8000000000000000;
+    }
+
+    let mut state = [0; NUM_KECCAK_LANES];
+    let mut digest = [0; DIGEST_LANES];
+    for b in 0..(N / BLOCK_SIZE_IN_BYTES) + 1 {
+        for j in 0..LIMBS_PER_BLOCK {
+            let lane = lanes[b * LIMBS_PER_BLOCK + j];
+            lane.assert_max_bit_size::<64>();
+            state[j] = state[j] ^ (lane as u64);
+        }
+        state = keccakf1600(state);
+
+        // Block b is absorbed iff 17b <= L, i.e. iff lane 17b - 1 precedes the boundary.
+        if b == 0 {
+            digest = [state[0], state[1], state[2], state[3]];
+        } else if lane_flags[b * LIMBS_PER_BLOCK - 1] {
+            digest = [state[0], state[1], state[2], state[3]];
+        }
+    }
+    digest
 }
 
 fn convert_to_u64_array<let N: u32>(
@@ -57,45 +162,11 @@ fn convert_to_u64_array<let N: u32>(
     // Output is padded to a multiple of BLOCK_SIZE_IN_BYTES
     let mut sliced_buffer = [0; ((N / BLOCK_SIZE_IN_BYTES) + 1) * LIMBS_PER_BLOCK];
 
-    if is_unconstrained() {
-        // Process each byte of the message and accumulate into the appropriate limb
-        for i in 0..message_size {
-            let limb_index = i / WORD_SIZE;
-            let byte_offset = i % WORD_SIZE;
-            sliced_buffer[limb_index] += (input[i] as u64) << (8 * (byte_offset as u64));
-        }
-    } else {
-        // In constrained code, it's simpler to copy to a larger intermediate array of a size such that we don't need to apply
-        // any guards when we're constructing the `u64` limbs.
-
-        // We need at least input bytes (N) but we want it to be padded to a multiple of BLOCK_SIZE_IN_BYTES.
-        let mut block_bytes = [0; ((N / BLOCK_SIZE_IN_BYTES) + 1) * BLOCK_SIZE_IN_BYTES];
-
-        for i in 0..N {
-            if i < message_size {
-                block_bytes[i] = input[i];
-            }
-        }
-
-        for i in 0..((N / BLOCK_SIZE_IN_BYTES) + 1) * LIMBS_PER_BLOCK {
-            let limb_start = WORD_SIZE * i;
-
-            let mut sliced = 0;
-            let mut v = 1;
-            unroll_loop!(
-                0u32,
-                WORD_SIZE,
-                |j: u32| {
-                    quote {
-                        sliced += v * (block_bytes[limb_start + $j] as Field);
-                        v *= 256;
-                    }
-                },
-            );
-
-            sliced.assert_max_bit_size::<64>();
-            sliced_buffer[i] = sliced as u64;
-        }
+    // Process each byte of the message and accumulate into the appropriate limb
+    for i in 0..message_size {
+        let limb_index = i / WORD_SIZE;
+        let byte_offset = i % WORD_SIZE;
+        sliced_buffer[limb_index] += (input[i] as u64) << (8 * (byte_offset as u64));
     }
 
     sliced_buffer
@@ -105,55 +176,14 @@ fn apply_keccak_permutations<let N: u32>(
     flattened_blocks_array: [u64; N],
     num_blocks: u32,
 ) -> [u64; NUM_KECCAK_LANES] {
-    //2. sponge_absorb
     let mut state: [u64; NUM_KECCAK_LANES] = [0; NUM_KECCAK_LANES];
-    // `num_blocks` is guaranteed to at least be `1`
-    // We peel out the first block as to avoid a conditional inside of the loop.
-    // Otherwise, a dynamic predicate can cause a blowup in a constrained runtime.
-    unroll_loop!(
-        0u32,
-        LIMBS_PER_BLOCK,
-        |i: u32| {
-            quote {
-                state[$i] = flattened_blocks_array[$i];
-            }
-        },
-    );
-    state = keccakf1600(state);
-
-    let max_blocks = N / LIMBS_PER_BLOCK;
-    if is_unconstrained() {
-        // When in an unconstrained runtime we can take advantage of runtime loop bounds,
-        // thus allowing us to simplify the loop body.
-        for i in 1..num_blocks {
-            for j in 0..LIMBS_PER_BLOCK {
-                state[j] = state[j] ^ flattened_blocks_array[i * LIMBS_PER_BLOCK + j];
-            }
-            state = keccakf1600(state);
+    for i in 0..num_blocks {
+        for j in 0..LIMBS_PER_BLOCK {
+            state[j] = state[j] ^ flattened_blocks_array[i * LIMBS_PER_BLOCK + j];
         }
-
-        state
-    } else {
-        if N / LIMBS_PER_BLOCK <= 1 {
-            // Single block: the first permutation above is the only one needed.
-            state
-        } else {
-            // We store the intermediate states in an array to avoid having a dynamic predicate
-            // inside the loop, which can cause a blowup in a constrained runtime.
-            let mut intermediate_states = [state; N / LIMBS_PER_BLOCK + 1];
-            for i in 1..max_blocks {
-                let mut previous_state = intermediate_states[i - 1];
-                for j in 0..LIMBS_PER_BLOCK {
-                    previous_state[j] =
-                        previous_state[j] ^ flattened_blocks_array[i * LIMBS_PER_BLOCK + j];
-                }
-                intermediate_states[i] = keccakf1600(previous_state);
-            }
-
-            // We can then take the state as of `num_blocks`, ignoring later permutations.
-            intermediate_states[num_blocks - 1]
-        }
+        state = keccakf1600(state);
     }
+    state
 }
 
 // Apply Keccak padding to the u64 block array
@@ -174,34 +204,13 @@ pub(crate) fn apply_keccak_padding<let N: u32>(
     block_array[real_max_blocks * LIMBS_PER_BLOCK - 1] += 0x80 << 56;
 }
 
-fn read_hash_from_state(state: [u64; NUM_KECCAK_LANES]) -> [u8; 32] {
+fn digest_to_bytes(lanes: [u64; DIGEST_LANES]) -> [u8; 32] {
     let mut result = [0; 32];
-    unroll_loop!(
-        0u32,
-        DIGEST_LANES,
-        |i: u32| {
-            quote {
-            let lane = state[$i] as Field;
-            let lane_le: [u8; 8] = lane.to_le_bytes();
-            result[8 * $i] = lane_le[0];
-            result[8 * $i + 1] = lane_le[1];
-            result[8 * $i + 2] = lane_le[2];
-            result[8 * $i + 3] = lane_le[3];
-            result[8 * $i + 4] = lane_le[4];
-            result[8 * $i + 5] = lane_le[5];
-            result[8 * $i + 6] = lane_le[6];
-            result[8 * $i + 7] = lane_le[7];
+    for i in 0..DIGEST_LANES {
+        let lane_le: [u8; 8] = (lanes[i] as Field).to_le_bytes();
+        for j in 0..WORD_SIZE {
+            result[WORD_SIZE * i + j] = lane_le[j];
         }
-        },
-    );
-
-    result
-}
-
-comptime fn unroll_loop(start: u32, end: u32, body: fn(u32) -> Quoted) -> Quoted {
-    let mut iterations: [Quoted] = @[];
-    for i in start..end {
-        iterations = iterations.push_back(body(i));
     }
-    iterations.join(quote {})
+    result
 }
